@@ -1,0 +1,140 @@
+#include <iostream>         // Biblioteca padrão para entrada e saída
+#include <glad/glad.h>      // Biblioteca para carregar extensões do OpenGL
+#include <GLFW/glfw3.h>     // Biblioteca para criar janelas e gerenciar eventos
+
+// Código-fonte do Vertex Shader (Shader de vértices)
+const char* vertexShaderSource = R"(
+#version 330 core
+layout (location = 0) in vec3 aPos; // Entrada do shader: posição do vértice
+void main()
+{
+    gl_Position = vec4(aPos, 1.0); // Define a posição do vértice na tela
+}
+)";
+
+// Código-fonte do Fragment Shader (Shader de fragmento/pixel)
+const char* fragmentShaderSource = R"(
+#version 330 core
+out vec4 FragColor; // Cor de saída do fragmento
+void main()
+{
+    FragColor = vec4(1.0, 0.5, 0.2, 1.0); // Define a cor laranja
+}
+)";
+
+int main() {
+    // Inicializa a biblioteca GLFW
+    glfwInit();
+
+    // Configuração da versão do OpenGL para 3.3 Core Profile
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    // Definição dos vértices de um triângulo equilátero
+    GLfloat vertices[] = {
+        -0.5f, -0.5 * float(sqrt(3)) / 3, 0.0f,  // Vértice inferior esquerdo
+         0.5f, -0.5f * float(sqrt(3)) / 3, 0.0f, // Vértice inferior direito
+         0.0f,  0.5f * float(sqrt(3)) * 2 / 3, 0.0f // Vértice superior
+    };
+
+    // Cria uma janela GLFW de 800x800 pixels chamada "Baguga"
+    GLFWwindow* window = glfwCreateWindow(800, 800, "Baguga", NULL, NULL);
+    if (window == NULL) { // Verifica se a criação falhou
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+
+    // Define a janela como contexto atual para OpenGL
+    glfwMakeContextCurrent(window);
+
+    // Ativa o V-Sync para limitar a taxa de quadros e reduzir o uso da GPU
+    glfwSwapInterval(1);
+
+    // Carrega as funções do OpenGL com GLAD
+    gladLoadGL();
+
+    // Define a área de exibição (viewport)
+    glViewport(0, 0, 800, 800);
+
+    // Criação e compilação do Vertex Shader
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+
+    // Criação e compilação do Fragment Shader
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+
+    // Criação do programa de shader e linkagem dos shaders
+    GLuint shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
+    // Deleta os shaders após linkados (não são mais necessários)
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    // Declaração de objetos do OpenGL
+    GLuint VAO, VBO;
+
+    // Geração dos buffers e arrays
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    // Ligação do VAO (Vertex Array Object)
+    glBindVertexArray(VAO);
+
+    // Ligação do VBO (Vertex Buffer Object)
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    // Configuração dos atributos do vértice
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // Desvincula o buffer para evitar modificações acidentais
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // Define a cor de fundo da tela e limpa o buffer de cor
+    glClearColor(0.17f, 0.13f, 0.17f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glfwSwapBuffers(window); // Troca os buffers para exibir a tela inicial
+
+    // Loop principal do jogo/programa
+    while (!glfwWindowShouldClose(window)) {
+        // Define a cor de fundo e limpa a tela
+        glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        // Usa o programa de shaders
+        glUseProgram(shaderProgram);
+
+        // Liga o VAO (com os vértices carregados)
+        glBindVertexArray(VAO);
+
+        // Desenha o triângulo usando os vértices do VAO
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        // Troca os buffers para exibir o novo frame
+        glfwSwapBuffers(window);
+
+        // Processa eventos (teclado, mouse, etc.)
+        glfwPollEvents();
+    }
+
+    // Deleta os objetos criados antes de fechar o programa
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteProgram(shaderProgram);
+
+    // Destroi a janela e encerra a biblioteca GLFW
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    
+    return 0;
+}
